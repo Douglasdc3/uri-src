@@ -128,4 +128,41 @@ final class UriTemplate
             )
         );
     }
+
+    public function extract(string|UriInterface|\Psr\Http\Message\UriInterface $uri): VariableBag
+    {
+        $uri = Uri::createFromString($uri);
+
+        $pattern = preg_replace_callback(
+            '/\{[^}]*}.?/x',
+            function ($match) {
+                if (substr($match[0], -1) === '}') {
+                    return '(.*)$';
+                }
+
+                $character = preg_quote(substr($match[0], -1));
+
+                return '([^' . $character . ']*)' . $character;
+            },
+            $this->getTemplate(),
+        );
+        $pattern = str_replace('/', '\/', $pattern);
+        $pattern = "/$pattern/";
+
+        $variableBag = new VariableBag();
+
+        preg_match_all($pattern, $uri->toString(), $matches);
+        for ($i = 1, $matchCount = count($matches) ; $i < $matchCount; $i++) {
+            if (count($matches[$i]) === 0) {
+                continue;
+            }
+
+            $variableBag->assign(
+                $this->template->variableNames[$i - 1],
+                urldecode($matches[$i][0])
+            );
+        }
+
+        return $variableBag;
+    }
 }

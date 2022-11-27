@@ -15,6 +15,7 @@ namespace League\Uri;
 
 use League\Uri\Exceptions\SyntaxError;
 use League\Uri\Exceptions\TemplateCanNotBeExpanded;
+use League\Uri\UriTemplate\VariableBag;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -406,5 +407,22 @@ final class UriTemplateTest extends TestCase
         $data = ['foo' => 'foo'];
 
         self::assertSame('foo/foo', (new UriTemplate($template, $data))->expand()->__toString());
+    }
+
+    /**
+     * @covers \League\Uri\UriTemplate\Template
+     */
+    public function testExtractVariableBagWithUriString(): void
+    {
+        $template = 'https://example.com/hotels/{hotel}/bookings/{booking}';
+        $uriString = 'https://example.com/hotels/Rest%20%26%20Relax/bookings/42';
+
+        $uriTemplate = new UriTemplate($template);
+        $variables = $uriTemplate->extract($uriString);
+
+        self::assertInstanceOf(VariableBag::class, $variables);
+        self::assertCount(2, $variables);
+        self::assertSame('Rest & Relax', $variables['hotel']);
+        self::assertSame('42', $variables['booking']);
     }
 }
